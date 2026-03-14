@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<title>OCR Demo</title>
+
+<style>
+
+body{
+    font-family: Arial, sans-serif;
+    background:#f4f6f8;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+}
+
+.container{
+    background:white;
+    padding:30px;
+    border-radius:10px;
+    box-shadow:0px 4px 12px rgba(0,0,0,0.15);
+    text-align:center;
+    width:520px;
+}
+
+h2{
+    margin-bottom:20px;
+}
+
+input[type="file"]{
+    margin-bottom:15px;
+}
+
+button{
+    background:#4CAF50;
+    color:white;
+    border:none;
+    padding:10px 20px;
+    font-size:16px;
+    border-radius:5px;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#45a049;
+}
+
+.preview{
+    margin-top:20px;
+}
+
+.preview img{
+    max-width:100%;
+    max-height:250px;
+    border:1px solid #ccc;
+    border-radius:5px;
+}
+
+textarea{
+    margin-top:20px;
+    width:100%;
+    padding:10px;
+    border-radius:5px;
+    border:1px solid #ccc;
+    resize:none;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>Transformer OCR Demo</h2>
+
+<input type="file" id="imageInput" onchange="previewImage()">
+
+<br>
+<button onclick="runOCR()">Run OCR</button>
+
+<div class="preview">
+    <p>Input Image</p>
+    <img id="imagePreview" src="">
+</div>
+
+<textarea id="outputText" rows="8" placeholder="OCR output will appear here"></textarea>
+
+</div>
+
+
+<script>
+
+function previewImage(){
+    const file = document.getElementById("imageInput").files[0];
+
+    if(file){
+        const reader = new FileReader();
+
+        reader.onload = function(e){
+            document.getElementById("imagePreview").src = e.target.result;
+        }
+
+        reader.readAsDataURL(file);
+    }
+}
+
+async function runOCR(){
+
+    const fileInput = document.getElementById("imageInput");
+    const file = fileInput.files[0];
+
+    if(!file){
+        alert("Please select an image.");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch("http://127.0.0.1:8000/predict", {
+        method:"POST",
+        body:formData
+    });
+
+    const result = await response.json();
+
+    if(result.text){
+        document.getElementById("outputText").value = result.text;
+    } else {
+        document.getElementById("outputText").value = "Error: " + result.error;
+    }
+}
+
+</script>
+
+</body>
+</html>

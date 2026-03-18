@@ -1,4 +1,7 @@
 import os
+import uuid
+import shutil
+
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -11,7 +14,6 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 app = FastAPI()
 
-# allow frontend requests
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,27 +21,33 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# serve HTML page
 app.mount("/web", StaticFiles(directory="web"), name="web")
+
+
+@app.get("/")
+def root():
+    return {"status": "OCR API running"}
 
 
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
 
-    file_path = os.path.join(UPLOAD_FOLDER, file.filename)
-
-    with open(file_path, "wb") as f:
-        content = await file.read()
-        f.write(content)
+    file_id = str(uuid.uuid4())
+    file_path = os.path.join(UPLOAD_FOLDER, f"{file_id}_{file.filename}")
 
     try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
         text = run_inference(file_path)
 
-        return JSONResponse({
-            "text": text
-        })
+        os.remove(file_path)
+
+        return {"text": text}
 
     except Exception as e:
-        return JSONResponse({
-            "error": str(e)
-        })
+
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
+        return {"error": str(e)}
